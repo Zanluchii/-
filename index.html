@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Uma Surpresa Pra Você</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink: #ff6fa8;
+    --pink-dark: #e04a8a;
+    --lilac: #b98bff;
+    --cream: #fff6fb;
+    --ink: #5a2a4a;
+    --card: rgba(255, 255, 255, 0.85);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Quicksand', system-ui, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(160deg, #ffd6e8 0%, #f3d9ff 50%, #d9e8ff 100%);
+    overflow: hidden;
+    user-select: none;
+  }
+  #bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .floaty {
+    position: absolute; bottom: -60px; font-size: 24px; opacity: .55;
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    from { transform: translateY(0) rotate(0deg); }
+    to { transform: translateY(-115vh) rotate(360deg); }
+  }
+
+  .screen {
+    position: fixed; inset: 0; z-index: 1;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px; text-align: center;
+  }
+  .screen.active { display: flex; animation: fadeIn .6s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--card);
+    backdrop-filter: blur(8px);
+    border-radius: 28px;
+    padding: 28px 24px;
+    max-width: 440px; width: 100%;
+    box-shadow: 0 20px 50px rgba(224, 74, 138, .25);
+    border: 2px solid rgba(255,255,255,.9);
+  }
+  h1, h2 { font-family: 'Pacifico', cursive; font-weight: 400; color: var(--pink-dark); }
+  h1 { font-size: clamp(30px, 8vw, 44px); line-height: 1.25; margin-bottom: 12px; }
+  h2 { font-size: clamp(24px, 6vw, 32px); margin-bottom: 10px; }
+  p { font-size: 17px; line-height: 1.5; margin-bottom: 14px; }
+  .small { font-size: 14px; opacity: .8; }
+
+  button.btn {
+    font-family: inherit; font-weight: 700; font-size: 18px;
+    border: none; cursor: pointer; color: #fff;
+    background: linear-gradient(135deg, var(--pink), var(--lilac));
+    padding: 14px 30px; border-radius: 999px;
+    box-shadow: 0 8px 20px rgba(224, 74, 138, .35);
+    transition: transform .15s, box-shadow .15s;
+    margin-top: 6px;
+  }
+  button.btn:hover { transform: translateY(-2px) scale(1.03); }
+  button.btn:active { transform: scale(.97); }
+  input.name {
+    font-family: inherit; font-size: 18px; font-weight: 700; color: var(--ink);
+    width: 100%; padding: 12px 18px; border-radius: 999px; text-align: center;
+    border: 2px solid #ffc2dc; outline: none; background: #fff; margin: 4px 0 16px;
+  }
+  input.name:focus { border-color: var(--pink); }
+  input.name.wrong { border-color: #e0475a; animation: nope .4s; }
+  @keyframes nope { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+  .name-error {
+    display: block; margin: -6px 0 14px; font-weight: 700; font-size: 16px; color: #d6334a;
+  }
+  .name-error.hidden { display: none; }
+  .big-emoji { font-size: 64px; display: block; margin-bottom: 6px; animation: bob 2s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-8px) rotate(-4deg); } }
+
+  .steps { display: flex; gap: 8px; justify-content: center; margin: 4px 0 18px; }
+  .steps span { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #ffe3ef; font-size: 18px; }
+
+  /* HUD */
+  .hud {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 3; display: flex; gap: 10px; align-items: center;
+    background: var(--card); padding: 8px 18px; border-radius: 999px;
+    font-weight: 700; box-shadow: 0 6px 16px rgba(224, 74, 138, .2);
+    white-space: nowrap; font-size: 16px;
+  }
+  .bar { width: 120px; height: 12px; background: #ffe3ef; border-radius: 99px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), var(--lilac)); transition: width .25s; }
+
+  #catch canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
+
+  /* Memory */
+  .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    width: min(420px, 100%); margin: 12px auto 0;
+  }
+  .mem {
+    aspect-ratio: 1; perspective: 600px; cursor: pointer;
+  }
+  .mem .inner {
+    position: relative; width: 100%; height: 100%;
+    transition: transform .45s; transform-style: preserve-3d;
+  }
+  .mem.flip .inner, .mem.done .inner { transform: rotateY(180deg); }
+  .mem .face {
+    position: absolute; inset: 0; border-radius: 16px; display: grid; place-items: center;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    font-size: clamp(26px, 9vw, 40px);
+    box-shadow: 0 6px 14px rgba(185, 139, 255, .3);
+  }
+  .mem .front { background: linear-gradient(135deg, var(--pink), var(--lilac)); color: #fff; font-size: clamp(20px, 6vw, 28px); }
+  .mem .back { background: #fff; transform: rotateY(180deg); }
+  .mem.done .back { background: #fff0f7; animation: pop .4s; }
+  @keyframes pop { 50% { transform: rotateY(180deg) scale(1.12); } }
+
+  /* Quiz */
+  .opts { display: grid; gap: 10px; margin-top: 8px; }
+  .opt {
+    font-family: inherit; font-size: 17px; font-weight: 700; color: var(--ink);
+    background: #fff; border: 2px solid #ffc2dc; padding: 12px 16px; border-radius: 16px; cursor: pointer;
+    transition: transform .12s, background .2s;
+  }
+  .opt:hover { transform: scale(1.02); background: #fff0f7; }
+  .opt.right { background: #d8ffe6; border-color: #6fd69a; }
+
+  /* Gift */
+  .gift {
+    font-size: 120px; cursor: pointer; display: inline-block; margin: 10px 0;
+    filter: drop-shadow(0 12px 18px rgba(224, 74, 138, .35));
+    transition: transform .2s;
+  }
+  .gift.shake { animation: shake .5s; }
+  @keyframes shake {
+    0%,100% { transform: rotate(0); }
+    20% { transform: rotate(-14deg) scale(1.08); }
+    40% { transform: rotate(12deg) scale(1.12); }
+    60% { transform: rotate(-8deg) scale(1.1); }
+    80% { transform: rotate(6deg) scale(1.05); }
+  }
+  .gift.boom { animation: boom .6s forwards; }
+  @keyframes boom { to { transform: scale(2.4); opacity: 0; } }
+
+  #reveal .card { max-width: 480px; }
+  .compliment {
+    font-family: 'Pacifico', cursive; font-size: clamp(28px, 8vw, 44px);
+    color: var(--pink-dark); line-height: 1.2; margin: 6px 0 14px; min-height: 1.2em;
+  }
+  .typed { font-size: 18px; min-height: 5.5em; line-height: 1.55; }
+  .caret::after { content: '|'; animation: blink 1s steps(1) infinite; color: var(--pink); }
+  @keyframes blink { 50% { opacity: 0; } }
+  .hidden { visibility: hidden; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(30px);
+    background: #fff; padding: 10px 20px; border-radius: 999px; font-weight: 700;
+    box-shadow: 0 8px 20px rgba(224, 74, 138, .3); opacity: 0; transition: .3s; z-index: 10;
+    pointer-events: none; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<canvas id="confetti"></canvas>
+<div id="toast"></div>
+
+<!-- INTRO -->
+<section class="screen active" id="intro">
+  <div class="card">
+    <span class="big-emoji">💌</span>
+    <h1>Tenho uma surpresa pra você!</h1>
+    <p>Mas ela está trancadinha... Pra ganhar o seu presente, você vai precisar passar por <b>3 desafios</b> fofos.</p>
+    <div class="steps"><span>💗</span><span>🃏</span><span>🌷</span><span>🎁</span></div>
+    <input class="name" id="nameInput" maxlength="20" placeholder="Qual é o seu nome?">
+    <p class="name-error hidden" id="nameError"></p>
+    <button class="btn" id="startBtn">Vamos lá! ✨</button>
+  </div>
+</section>
+
+<!-- STAGE 1 intro -->
+<section class="screen" id="s1intro">
+  <div class="card">
+    <span class="big-emoji">💗</span>
+    <h2>Desafio 1: Chuva de Amor</h2>
+    <p>Arraste o gatinho 🐱 para pegar <b>20 coisinhas fofas</b> que caem do céu.</p>
+    <p class="small">Cuidado com as nuvens de chuva 🌧️ — elas tiram pontinhos!</p>
+    <button class="btn" data-go="catch">Começar 💖</button>
+  </div>
+</section>
+
+<section class="screen" id="catch">
+  <canvas id="game"></canvas>
+  <div class="hud"><span id="catchCount">0 / 20</span><div class="bar"><i id="catchBar"></i></div></div>
+</section>
+
+<!-- STAGE 2 intro -->
+<section class="screen" id="s2intro">
+  <div class="card">
+    <span class="big-emoji">🃏</span>
+    <h2>Desafio 2: Memória Fofa</h2>
+    <p>Arrasou! Agora encontre todos os <b>pares iguais</b>. Acho que sua memória é tão boa quanto seu sorriso 😉</p>
+    <button class="btn" data-go="memory">Bora! 🦋</button>
+  </div>
+</section>
+
+<section class="screen" id="memory">
+  <div class="hud"><span>Pares: <b id="pairs">0</b>/8</span><span>🃏 <b id="moves">0</b></span></div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<!-- STAGE 3 -->
+<section class="screen" id="quiz">
+  <div class="card">
+    <div class="steps" id="quizDots"></div>
+    <h2 id="qTitle"></h2>
+    <div class="opts" id="qOpts"></div>
+  </div>
+</section>
+
+<!-- GIFT -->
+<section class="screen" id="giftScreen">
+  <div class="card">
+    <h2>Você conseguiu! 🎉</h2>
+    <p>Seu presente está aqui. Toque nele algumas vezes para abrir...</p>
+    <div class="gift" id="gift">🎁</div>
+    <p class="small" id="giftHint">toque 3x 👆</p>
+  </div>
+</section>
+
+<section class="screen" id="reveal">
+  <div class="card">
+    <div class="compliment" id="bigText"></div>
+    <div class="typed" id="typed"></div>
+    <button class="btn hidden" id="moreBtn">Me diz mais um 💕</button>
+    <p class="small hidden" id="again" style="margin-top:16px;cursor:pointer;text-decoration:underline">jogar de novo</p>
+  </div>
+</section>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  let name = '';
+
+  /* ---------- floating background ---------- */
+  const bgIcons = ['💗','🌸','✨','💕','🦋','⭐','🌷','💖'];
+  const bg = $('#bg');
+  for (let i = 0; i < 18; i++) {
+    const e = document.createElement('span');
+    e.className = 'floaty';
+    e.textContent = bgIcons[i % bgIcons.length];
+    e.style.left = Math.random() * 100 + 'vw';
+    e.style.fontSize = 16 + Math.random() * 22 + 'px';
+    e.style.animationDuration = 10 + Math.random() * 14 + 's';
+    e.style.animationDelay = -Math.random() * 20 + 's';
+    bg.appendChild(e);
+  }
+
+  /* ---------- helpers ---------- */
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('#' + id).classList.add('active');
+    if (id === 'catch') startCatch();
+    if (id === 'memory') startMemory();
+    if (id === 'quiz') startQuiz();
+  }
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => show(b.dataset.go));
+
+  let toastT;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1400);
+  }
+
+  // tiny synth sounds
+  let ac;
+  function beep(freq = 660, dur = .12, type = 'sine', vol = .08) {
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+      o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + dur);
+    } catch (e) {}
+  }
+  const melody = notes => notes.forEach((n, i) => setTimeout(() => beep(n, .22, 'triangle', .09), i * 140));
+
+  /* ---------- intro ---------- */
+  $('#startBtn').onclick = () => {
+    const typed = $('#nameInput').value.trim();
+    const norm = typed.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const err = $('#nameError');
+    if (norm !== 'milena') {
+      beep(200, .3, 'square', .05);
+      err.textContent = typed
+        ? `Essa menina não existe na vida do João Vinicius 🚫`
+        : 'Digite o seu nome primeiro 😊';
+      err.classList.remove('hidden');
+      const input = $('#nameInput');
+      input.classList.remove('wrong'); void input.offsetWidth; input.classList.add('wrong');
+      return;
+    }
+    err.classList.add('hidden');
+    name = 'Milena';
+    beep(880);
+    show('s1intro');
+  };
+  $('#nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('#startBtn').click(); });
+
+  /* ---------- STAGE 1: catch ---------- */
+  const GOAL = 20;
+  const goodIcons = ['💖','🌸','⭐','🍓','💕','🌷','🦋','🍬'];
+  let raf, items, score, player, lastSpawn, cv, ctx, W, H, running;
+
+  function resize() {
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (player) player.y = H - 70;
+  }
+  addEventListener('resize', resize);
+
+  function startCatch() {
+    cv = $('#game'); ctx = cv.getContext('2d');
+    resize();
+    items = []; score = 0; lastSpawn = 0; running = true;
+    player = { x: W / 2, y: H - 70, tx: W / 2, size: 56 };
+    updateHud();
+    const move = e => {
+      const p = e.touches ? e.touches[0] : e;
+      player.tx = p.clientX;
+    };
+    cv.onpointermove = move; cv.onpointerdown = move;
+    cv.ontouchmove = e => { e.preventDefault(); move(e); };
+    onkeydown = e => {
+      if (!running) return;
+      if (e.key === 'ArrowLeft') player.tx -= 60;
+      if (e.key === 'ArrowRight') player.tx += 60;
+    };
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(loop);
+  }
+
+  function updateHud() {
+    $('#catchCount').textContent = `${Math.max(0, score)} / ${GOAL}`;
+    $('#catchBar').style.width = Math.min(100, Math.max(0, score) / GOAL * 100) + '%';
+  }
+
+  function loop(t) {
+    if (!running) return;
+    const speedUp = 1 + score / GOAL * 0.8;
+    if (t - lastSpawn > 520 / speedUp) {
+      lastSpawn = t;
+      const bad = Math.random() < 0.2;
+      items.push({
+        x: 30 + Math.random() * (W - 60), y: -40,
+        vy: (1.8 + Math.random() * 1.8) * speedUp * (H / 750 + .3),
+        rot: Math.random() * 6, vr: (Math.random() - .5) * .08,
+        icon: bad ? '🌧️' : goodIcons[Math.random() * goodIcons.length | 0],
+        bad, size: 34 + Math.random() * 10
+      });
+    }
+    player.tx = Math.max(30, Math.min(W - 30, player.tx));
+    player.x += (player.tx - player.x) * 0.25;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      it.y += it.vy; it.rot += it.vr;
+      if (it.pop) {
+        it.pop++;
+        ctx.globalAlpha = Math.max(0, 1 - it.pop / 20);
+        ctx.font = `bold 22px Quicksand, sans-serif`;
+        ctx.fillStyle = it.bad ? '#7a7a9a' : '#e04a8a';
+        ctx.fillText(it.bad ? '-2' : '+1', it.x, it.py - it.pop * 2);
+        ctx.globalAlpha = 1;
+        if (it.pop > 20) items.splice(i, 1);
+        continue;
+      }
+      ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(Math.sin(it.rot) * .3);
+      ctx.font = `${it.size}px serif`; ctx.fillText(it.icon, 0, 0);
+      ctx.restore();
+
+      if (Math.abs(it.x - player.x) < 42 && Math.abs(it.y - player.y) < 36) {
+        it.pop = 1; it.py = it.y; it.vy = 0;
+        if (it.bad) { score = Math.max(0, score - 2); beep(180, .25, 'sawtooth', .05); toast('Ops! Chuvinha 🌧️'); }
+        else { score++; beep(600 + score * 25); }
+        updateHud();
+        if (score >= GOAL) return finishCatch();
+      } else if (it.y > H + 50) items.splice(i, 1);
+    }
+
+    // player
+    ctx.font = `${player.size}px serif`;
+    ctx.fillText('🐱', player.x, player.y);
+    ctx.font = '26px serif';
+    ctx.fillText('🧺', player.x, player.y + 30);
+
+    raf = requestAnimationFrame(loop);
+  }
+
+  function finishCatch() {
+    running = false; onkeydown = null;
+    melody([523, 659, 784, 1047]);
+    confetti(120);
+    setTimeout(() => show('s2intro'), 900);
+  }
+
+  /* ---------- STAGE 2: memory ---------- */
+  const memIcons = ['🌸','🦋','🍓','🌙','🧸','🌈','🍰','💎'];
+  let first, lock, pairs, moves;
+  function startMemory() {
+    const deck = [...memIcons, ...memIcons].sort(() => Math.random() - .5);
+    const grid = $('#grid'); grid.innerHTML = '';
+    first = null; lock = false; pairs = 0; moves = 0;
+    $('#pairs').textContent = 0; $('#moves').textContent = 0;
+    deck.forEach(icon => {
+      const c = document.createElement('div');
+      c.className = 'mem'; c.dataset.icon = icon;
+      c.innerHTML = `<div class="inner"><div class="face front">💗</div><div class="face back">${icon}</div></div>`;
+      c.onclick = () => flip(c);
+      grid.appendChild(c);
+    });
+  }
+  function flip(c) {
+    if (lock || c === first || c.classList.contains('done')) return;
+    c.classList.add('flip'); beep(520, .08);
+    if (!first) { first = c; return; }
+    moves++; $('#moves').textContent = moves;
+    if (first.dataset.icon === c.dataset.icon) {
+      first.classList.add('done'); c.classList.add('done');
+      first = null; pairs++; $('#pairs').textContent = pairs;
+      beep(880, .15, 'triangle');
+      if (pairs === memIcons.length) {
+        melody([659, 784, 988, 1319]);
+        confetti(120);
+        toast(`Em ${moves} jogadas! 🧠✨`);
+        setTimeout(() => show('quiz'), 1300);
+      }
+    } else {
+      lock = true;
+      const a = first; first = null;
+      setTimeout(() => { a.classList.remove('flip'); c.classList.remove('flip'); lock = false; }, 750);
+    }
+  }
+
+  /* ---------- STAGE 3: quiz (every answer is "right", the joke is the correct one) ---------- */
+  const questions = [
+    { q: 'Quem é a pessoa mais especial deste site?', opts: ['O gatinho 🐱', 'A nuvem de chuva 🌧️', 'Você, claro! 💖'], right: 2,
+      wrong: 'Hmm... tenta de novo 👀' },
+    { q: 'O que brilha mais que as estrelas?', opts: ['Um diamante 💎', 'O seu sorriso 😊', 'Uma lanterna 🔦'], right: 1,
+      wrong: 'Quase! Mas tem algo que brilha mais ✨' },
+    { q: 'Qual é o seu presente?', opts: ['Uma meia velha 🧦', 'Algo que você já é 💫', 'Nada 😢'], right: 1,
+      wrong: 'Nada disso! Escolhe outra 😆' },
+  ];
+  let qi;
+  function startQuiz() { qi = 0; renderQ(); }
+  function renderQ() {
+    const q = questions[qi];
+    $('#quizDots').innerHTML = questions.map((_, i) => `<span>${i < qi ? '💗' : i === qi ? '🌷' : '🤍'}</span>`).join('');
+    $('#qTitle').textContent = q.q;
+    const box = $('#qOpts'); box.innerHTML = '';
+    q.opts.forEach((o, i) => {
+      const b = document.createElement('button');
+      b.className = 'opt'; b.textContent = o;
+      b.onclick = () => {
+        if (i === q.right) {
+          b.classList.add('right'); beep(880, .15, 'triangle');
+          setTimeout(() => {
+            qi++;
+            if (qi < questions.length) renderQ();
+            else { melody([523, 659, 784, 1047, 1319]); confetti(150); setTimeout(() => show('giftScreen'), 700); }
+          }, 600);
+        } else {
+          beep(220, .15, 'square', .04); toast(q.wrong);
+          b.style.transform = 'translateX(-8px)'; setTimeout(() => b.style.transform = '', 150);
+        }
+      };
+      box.appendChild(b);
+    });
+  }
+
+  /* ---------- GIFT ---------- */
+  let taps = 0;
+  const gift = $('#gift');
+  gift.onclick = () => {
+    if (taps >= 3) return;
+    taps++;
+    gift.classList.remove('shake'); void gift.offsetWidth; gift.classList.add('shake');
+    beep(400 + taps * 150, .15, 'triangle');
+    $('#giftHint').textContent = ['toque 3x 👆', 'mais 2... 🤭', 'só mais 1! 😍', 'abrindo...'][taps];
+    if (taps === 3) {
+      setTimeout(() => {
+        gift.classList.add('boom');
+        melody([523, 659, 784, 1047, 784, 1047, 1319]);
+        confetti(300);
+        setTimeout(reveal, 500);
+      }, 450);
+    }
+  };
+
+  const compliments = [
+    'Você ilumina qualquer lugar que entra, sabia? Seu sorriso é daqueles que fazem o dia de qualquer um ficar melhor. 🌞',
+    'Seus olhos têm um brilho que nenhuma estrela consegue copiar. ✨',
+    'Você é linda por fora e mais linda ainda por dentro. Essa combinação é raríssima. 💎',
+    'Se beleza fosse tempo, você seria a eternidade. ⏳💕',
+    'Até as flores ficam com ciúmes quando você passa. 🌷',
+    'Seu jeito é único: doce, engraçado e encantador. Nunca mude! 🦋',
+    'Se você fosse um emoji, seria todos os corações juntos. 💖💗💕💞',
+    'O mundo é muito mais bonito porque você existe nele. 🌍🌸',
+  ];
+  let ci = 0, typing;
+
+  function reveal() {
+    show('reveal');
+    typeText($('#bigText'), 'Milena, você é a menina mais perfeita desse mundo inteiro 💖', 60, () => {
+      $('#bigText').classList.remove('caret');
+      typeText($('#typed'), 'E esse foi o seu presente: lembrar que você é absolutamente linda, por dentro e por fora. Obrigado por existir e por deixar tudo mais bonito. 🌸', 32, () => {
+        $('#moreBtn').classList.remove('hidden');
+        $('#again').classList.remove('hidden');
+      });
+    });
+    setInterval(() => confetti(25, true), 2500);
+  }
+
+  function typeText(el, text, speed, done) {
+    clearInterval(typing);
+    const chars = [...text]; let i = 0;
+    el.textContent = ''; el.classList.add('caret');
+    typing = setInterval(() => {
+      el.textContent += chars[i++];
+      if (i >= chars.length) { clearInterval(typing); el.classList.remove('caret'); done && done(); }
+    }, speed);
+  }
+
+  $('#moreBtn').onclick = () => {
+    beep(700 + ci * 40, .12, 'triangle');
+    confetti(60);
+    typeText($('#typed'), compliments[ci % compliments.length], 28);
+    ci++;
+  };
+  $('#again').onclick = () => location.reload();
+
+  /* ---------- confetti ---------- */
+  const cc = $('#confetti'), cx = cc.getContext('2d');
+  let parts = [], cRaf;
+  function sizeConfetti() { cc.width = innerWidth; cc.height = innerHeight; }
+  sizeConfetti(); addEventListener('resize', sizeConfetti);
+  const colors = ['#ff6fa8', '#b98bff', '#ffd166', '#7ad7f0', '#ff9ec7', '#ffffff'];
+  function confetti(n, gentle) {
+    for (let i = 0; i < n; i++) {
+      const heart = Math.random() < .35;
+      parts.push({
+        x: gentle ? Math.random() * cc.width : cc.width / 2 + (Math.random() - .5) * 80,
+        y: gentle ? -20 : cc.height * .45,
+        vx: gentle ? (Math.random() - .5) * 1.5 : (Math.random() - .5) * 16,
+        vy: gentle ? 1 + Math.random() * 2 : -6 - Math.random() * 12,
+        s: 6 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - .5) * .3,
+        c: colors[Math.random() * colors.length | 0], heart, life: 0
+      });
+    }
+    if (!cRaf) cRaf = requestAnimationFrame(drawConfetti);
+  }
+  function drawConfetti() {
+    cx.clearRect(0, 0, cc.width, cc.height);
+    parts = parts.filter(p => p.y < cc.height + 30 && p.life < 600);
+    for (const p of parts) {
+      p.life++; p.vy += .25; p.vx *= .99; p.vy = Math.min(p.vy, 5);
+      p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r); cx.fillStyle = p.c;
+      if (p.heart) {
+        cx.font = `${p.s * 2}px serif`; cx.textAlign = 'center'; cx.fillText('💗', 0, 0);
+      } else cx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+      cx.restore();
+    }
+    cRaf = parts.length ? requestAnimationFrame(drawConfetti) : null;
+  }
+})();
+</script>
+</body>
+</html>
