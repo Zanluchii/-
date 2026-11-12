@@ -74,6 +74,12 @@
     border: 2px solid #ffc2dc; outline: none; background: #fff; margin: 4px 0 16px;
   }
   input.name:focus { border-color: var(--pink); }
+  input.name.wrong { border-color: #e0475a; animation: nope .4s; }
+  @keyframes nope { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+  .name-error {
+    display: block; margin: -6px 0 14px; font-weight: 700; font-size: 16px; color: #d6334a;
+  }
+  .name-error.hidden { display: none; }
   .big-emoji { font-size: 64px; display: block; margin-bottom: 6px; animation: bob 2s ease-in-out infinite; }
   @keyframes bob { 50% { transform: translateY(-8px) rotate(-4deg); } }
 
@@ -177,6 +183,7 @@
     <p>Mas ela está trancadinha... Pra ganhar o seu presente, você vai precisar passar por <b>3 desafios</b> fofos.</p>
     <div class="steps"><span>💗</span><span>🃏</span><span>🌷</span><span>🎁</span></div>
     <input class="name" id="nameInput" maxlength="20" placeholder="Qual é o seu nome?">
+    <p class="name-error hidden" id="nameError"></p>
     <button class="btn" id="startBtn">Vamos lá! ✨</button>
   </div>
 </section>
@@ -292,7 +299,21 @@
 
   /* ---------- intro ---------- */
   $('#startBtn').onclick = () => {
-    name = $('#nameInput').value.trim();
+    const typed = $('#nameInput').value.trim();
+    const norm = typed.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const err = $('#nameError');
+    if (norm !== 'milena') {
+      beep(200, .3, 'square', .05);
+      err.textContent = typed
+        ? `Essa menina não existe na vida do João Vinicius 🚫`
+        : 'Digite o seu nome primeiro 😊';
+      err.classList.remove('hidden');
+      const input = $('#nameInput');
+      input.classList.remove('wrong'); void input.offsetWidth; input.classList.add('wrong');
+      return;
+    }
+    err.classList.add('hidden');
+    name = 'Milena';
     beep(880);
     show('s1intro');
   };
