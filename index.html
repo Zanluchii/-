@@ -152,7 +152,7 @@
 
   #reveal .card { max-width: 480px; }
   .compliment {
-    font-family: 'Pacifico', cursive; font-size: clamp(34px, 10vw, 54px);
+    font-family: 'Pacifico', cursive; font-size: clamp(28px, 8vw, 44px);
     color: var(--pink-dark); line-height: 1.2; margin: 6px 0 14px; min-height: 1.2em;
   }
   .typed { font-size: 18px; min-height: 5.5em; line-height: 1.55; }
@@ -529,8 +529,7 @@
 
   function reveal() {
     show('reveal');
-    const who = name ? `${name}, você` : 'Você';
-    typeText($('#bigText'), `${who} é linda! 💖`, 70, () => {
+    typeText($('#bigText'), 'Milena, você é a menina mais perfeita desse mundo inteiro 💖', 60, () => {
       $('#bigText').classList.remove('caret');
       typeText($('#typed'), 'E esse foi o seu presente: lembrar que você é absolutamente linda, por dentro e por fora. Obrigado por existir e por deixar tudo mais bonito. 🌸', 32, () => {
         $('#moreBtn').classList.remove('hidden');
